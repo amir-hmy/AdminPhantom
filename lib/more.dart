@@ -52,7 +52,7 @@ class _CalcState extends State<CalcTab> {
           ),
           const SizedBox(height: 12),
           Text('توان: ${fa(w)} وات (مقدار تقریبی؛ از برچسب دستگاه بخوانید)'),
-          Slider(value: w.clamp(5, 3000), min: 5, max: 3000, onChanged: (v) => setState(() => w = v.roundToDouble())),
+          Slider(value: (w < 5 ? 5.0 : w > 3000 ? 3000.0 : w), min: 5, max: 3000, onChanged: (v) => setState(() => w = v.roundToDouble())),
           Text('مدت استفاده: ${fa(h, d: 1)} ساعت در روز'),
           Slider(value: h, min: 0, max: 24, divisions: 48, onChanged: (v) => setState(() => h = v)),
           Row(children: [
@@ -187,7 +187,7 @@ class ChallengesTab extends StatelessWidget {
               Text(challenges[i].$1, style: const TextStyle(fontWeight: FontWeight.bold)),
               Text(challenges[i].$2, style: Theme.of(c).textTheme.bodySmall),
               const SizedBox(height: 10),
-              LinearProgressIndicator(value: on ? (done / challenges[i].$3).clamp(0, 1).toDouble() : 0, minHeight: 8, borderRadius: BorderRadius.circular(8), color: kYellow, backgroundColor: kYellow.withOpacity(.2)),
+              LinearProgressIndicator(value: on ? (done >= challenges[i].$3 ? 1.0 : done / challenges[i].$3) : 0, minHeight: 8, borderRadius: BorderRadius.circular(8), color: kYellow, backgroundColor: kYellow.withOpacity(.2)),
               if (on) Padding(padding: const EdgeInsets.only(top: 4), child: Text('${fa(done)} از ${fa(challenges[i].$3)} روز', style: Theme.of(c).textTheme.bodySmall)),
               const SizedBox(height: 8),
               Wrap(spacing: 8, children: [
@@ -205,7 +205,7 @@ class ChallengesTab extends StatelessWidget {
                 ),
                 if (on)
                   FilledButton(
-                    onPressed: days!.contains(today) ? null : () { days.add(today); a.persist(); },
+                    onPressed: days!.contains(today) ? null : () { days!.add(today); a.persist(); },
                     child: Text(days!.contains(today) ? 'امروز ثبت شد' : 'امروز پایبند بودم'),
                   ),
               ]),
@@ -456,5 +456,4 @@ class ThemePage extends StatelessWidget {
   Widget build(BuildContext c) {
     final a = Scope.of(c);
     const colors = [kBlue, kRed, Color(0xFF16A34A), Color(0xFF7C3AED), Color(0xFFEA7A1E)];
-    return Frame('شخصی‌سازی', child: ListView(padding: const EdgeInsets.all(16), children: [
-      Gla
+    return Frame('شخصی‌سازی', child: ListView(padding: const EdgeInset
