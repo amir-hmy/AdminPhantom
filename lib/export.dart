@@ -23,7 +23,7 @@ Future<void> exportReport(BuildContext c, String title, Period p, double? tariff
     }
     const head = ['بازه', 'مصرف (kWh)', 'هزینه (تومان)', 'تغییر'];
     if (pdf) {
-      final font = await PdfGoogleFonts.notoNaskhArabicRegular();
+      final font = await PdfGoogleFonts.vazirmatnRegular();
       final doc = pw.Document();
       doc.addPage(pw.Page(
         theme: pw.ThemeData.withFont(base: font, bold: font),
