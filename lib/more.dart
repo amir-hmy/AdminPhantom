@@ -271,8 +271,8 @@ class MorePage extends StatelessWidget {
       tile(Icons.notifications_active_outlined, 'هشدارهای هوشمند', const AlertsPage()),
       tile(Icons.support_agent, 'پشتیبانی و قطعی برق', const SupportPage()),
       tile(Icons.palette_outlined, 'شخصی‌سازی ظاهر', const ThemePage()),
-      tile(Icons.lock_reset, 'تغییر رمز عبور', PasswordPage()),
-      tile(Icons.history, 'سوابق فعالیت من', MyLogPage()),
+      tile(Icons.lock_reset, 'تغییر رمز عبور', const PasswordPage()),
+      tile(Icons.history, 'سوابق فعالیت من', const MyLogPage()),
       Glass(padding: EdgeInsets.zero, child: ListTile(leading: const Icon(Icons.logout, color: kRed), title: const Text('خروج از حساب'), onTap: a.logout)),
     ]);
   }
