@@ -21,6 +21,7 @@ jobs:
           channel: stable
           cache: true
 
+      # پوشه‌ی android در مخزن نیست؛ اینجا ساخته می‌شود (سورس خودمان حفظ می‌شود)
       - name: Generate Android project
         run: |
           mkdir -p /tmp/bak && cp -r lib pubspec.yaml /tmp/bak/
@@ -28,18 +29,22 @@ jobs:
           rm -rf lib && cp -r /tmp/bak/lib lib && cp /tmp/bak/pubspec.yaml pubspec.yaml
           rm -rf test
 
+      # حداقل اندروید ۷ (API 24)
       - name: Set minSdk 24
         run: |
           f=$(ls android/app/build.gradle*)
           sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 24/; s/minSdkVersion flutter.minSdkVersion/minSdkVersion 24/' "$f"
           grep -n "minSdk" "$f"
 
+      # امضای ثابت: بدون آن، نصب نسخه‌ی جدید روی نسخه‌ی قبلی ممکن نیست و اطلاعات کاربران پاک می‌شود.
+      # راه‌اندازی یک‌باره: README را ببینید (Secret با نام DEBUG_KEYSTORE_B64).
       - name: Restore fixed signing key
         env:
           KS: ${{ secrets.DEBUG_KEYSTORE_B64 }}
         run: |
           if [ -n "$KS" ]; then mkdir -p ~/.android && echo "$KS" | base64 -d > ~/.android/debug.keystore; echo "fixed key restored"; else echo "WARNING: DEBUG_KEYSTORE_B64 not set"; fi
 
+      # مجوز اینترنت (برای تست API و فونت PDF) و خاموش‌کردن بکاپ ابری اندروید (محافظت از اطلاعات)
       - name: Patch manifest
         run: |
           m=android/app/src/main/AndroidManifest.xml
