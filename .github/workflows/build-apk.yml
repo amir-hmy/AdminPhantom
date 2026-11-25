@@ -1,103 +1,55 @@
-
 name: Build APK
 
 on:
   push:
-    branches:
-      - main
-      - master
+    branches: [main, master]
   workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-
     steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - uses: actions/checkout@v4
 
-      - name: Setup Java
-        uses: actions/setup-java@v4
+      - uses: actions/setup-java@v4
         with:
           distribution: temurin
           java-version: '17'
-          cache: gradle
 
-      - name: Setup Flutter
-        uses: subosito/flutter-action@v2
+      - uses: subosito/flutter-action@v2
         with:
           channel: stable
           cache: true
 
       - name: Generate Android project
         run: |
-          mkdir -p /tmp/flutter_backup
-          cp -r lib pubspec.yaml /tmp/flutter_backup/
-
-          flutter create \
-            --platforms=android \
-            --org ir.kashan \
-            --project-name kashan_energy .
-
-          rm -rf lib
-          cp -r /tmp/flutter_backup/lib lib
-          cp /tmp/flutter_backup/pubspec.yaml pubspec.yaml
-
+          mkdir -p /tmp/bak && cp -r lib pubspec.yaml /tmp/bak/
+          flutter create --platforms=android --org ir.kashan --project-name kashan_energy .
+          rm -rf lib && cp -r /tmp/bak/lib lib && cp /tmp/bak/pubspec.yaml pubspec.yaml
           rm -rf test
 
-      - name: Set minSdk to 24
+      - name: Set minSdk 24
         run: |
-          f="android/app/build.gradle"
-          if [ ! -f "$f" ]; then
-            f="android/app/build.gradle.kts"
-          fi
-
-          if [ -f "$f" ]; then
-            sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 24/g' "$f"
-            sed -i 's/minSdkVersion flutter.minSdkVersion/minSdkVersion 24/g' "$f"
-            grep -n "minSdk" "$f"
-          else
-            echo "Gradle file not found"
-            exit 1
-          fi
+          f=$(ls android/app/build.gradle*)
+          sed -i 's/minSdk = flutter.minSdkVersion/minSdk = 24/; s/minSdkVersion flutter.minSdkVersion/minSdkVersion 24/' "$f"
+          grep -n "minSdk" "$f"
 
       - name: Restore fixed signing key
         env:
           KS: ${{ secrets.DEBUG_KEYSTORE_B64 }}
         run: |
-          if [ -n "$KS" ]; then
-            mkdir -p ~/.android
-            echo "$KS" | base64 -d > ~/.android/debug.keystore
-            echo "Fixed signing key restored"
-          else
-            echo "No fixed signing key configured"
-          fi
+          if [ -n "$KS" ]; then mkdir -p ~/.android && echo "$KS" | base64 -d > ~/.android/debug.keystore; echo "fixed key restored"; else echo "WARNING: DEBUG_KEYSTORE_B64 not set"; fi
 
-      - name: Patch Android Manifest
+      - name: Patch manifest
         run: |
-          m="android/app/src/main/AndroidManifest.xml"
-
-          if ! grep -q 'android.permission.INTERNET' "$m"; then
-            sed -i '/<application/i\
-              <uses-permission android:name="android.permission.INTERNET"/>\
-            ' "$m"
-          fi
-
-          if ! grep -q 'android:allowBackup' "$m"; then
-            sed -i 's/<application/<application android:allowBackup="false"/' "$m"
-          fi
-
+          m=android/app/src/main/AndroidManifest.xml
+          sed -i 's#<application#<uses-permission android:name="android.permission.INTERNET"/>\n    <application android:allowBackup="false"#' "$m"
           grep -n "allowBackup\|INTERNET" "$m"
 
-      - name: Get Flutter dependencies
-        run: flutter pub get
+      - run: flutter pub get
+      - run: flutter build apk --release
 
-      - name: Build Release APK
-        run: flutter build apk --release
-
-      - name: Upload APK
-        uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v4
         with:
           name: kashan-energy-apk
           path: build/app/outputs/flutter-apk/app-release.apk
-          if-no-files-found: error
