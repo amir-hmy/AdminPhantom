@@ -20,9 +20,9 @@ class AdminShell extends StatelessWidget {
     return Bg(
       child: Scaffold(
         appBar: AppBar(title: Text('مدیریت - ${titles[a.tab]}'), actions: [IconButton(icon: const Icon(Icons.logout), tooltip: 'خروج', onPressed: a.logout)]),
-        body: KeyedSubtree(key: ValueKey(a.tab), child: pages[(a.tab > 3 ? 0 : a.tab)]),
+        body: KeyedSubtree(key: ValueKey(a.tab), child: pages[a.tab.clamp(0, 3)]),
         bottomNavigationBar: NavigationBar(
-          selectedIndex: (a.tab > 3 ? 0 : a.tab),
+          selectedIndex: a.tab.clamp(0, 3),
           onDestinationSelected: (i) => a.update(() => a.tab = i),
           destinations: const [
             NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: 'نمای کلی'),
