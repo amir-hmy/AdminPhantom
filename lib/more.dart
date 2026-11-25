@@ -271,8 +271,8 @@ class MorePage extends StatelessWidget {
       tile(Icons.notifications_active_outlined, 'هشدارهای هوشمند', const AlertsPage()),
       tile(Icons.support_agent, 'پشتیبانی و قطعی برق', const SupportPage()),
       tile(Icons.palette_outlined, 'شخصی‌سازی ظاهر', const ThemePage()),
-      tile(Icons.lock_reset, 'تغییر رمز عبور', const PasswordPage()),
-      tile(Icons.history, 'سوابق فعالیت من', const MyLogPage()),
+      tile(Icons.lock_reset, 'تغییر رمز عبور', PasswordPage()),
+      tile(Icons.history, 'سوابق فعالیت من', MyLogPage()),
       Glass(padding: EdgeInsets.zero, child: ListTile(leading: const Icon(Icons.logout, color: kRed), title: const Text('خروج از حساب'), onTap: a.logout)),
     ]);
   }
@@ -456,4 +456,82 @@ class ThemePage extends StatelessWidget {
   Widget build(BuildContext c) {
     final a = Scope.of(c);
     const colors = [kBlue, kRed, Color(0xFF16A34A), Color(0xFF7C3AED), Color(0xFFEA7A1E)];
-    return Frame('شخصی‌سازی', child: ListView(padding: const EdgeInset
+    return Frame('شخصی‌سازی', child: ListView(padding: const EdgeInsets.all(16), children: [
+      Glass(
+        child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+          const Text('تم', style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          SegmentedButton<String>(
+            showSelectedIcon: false,
+            segments: const [ButtonSegment(value: 'auto', label: Text('خودکار')), ButtonSegment(value: 'light', label: Text('روشن')), ButtonSegment(value: 'dark', label: Text('تاریک'))],
+            selected: {a.themePref},
+            onSelectionChanged: (s) => a.update(() { a.themePref = s.first; a.savePrefs(); }),
+          ),
+          const SizedBox(height: 16),
+          const Text('رنگ اصلی', style: TextStyle(fontWeight: FontWeight.bold)),
+          const SizedBox(height: 8),
+          Wrap(spacing: 12, children: [
+            for (final k in colors)
+              GestureDetector(
+                onTap: () => a.update(() { a.seed = k; a.savePrefs(); }),
+                child: CircleAvatar(backgroundColor: k, radius: 18, child: a.seed.value == k.value ? const Icon(Icons.check, color: Colors.white) : null),
+              ),
+          ]),
+          const SizedBox(height: 16),
+          Text('اندازه‌ی نوشته: ${fa(a.scale * 100)}٪', style: const TextStyle(fontWeight: FontWeight.bold)),
+          Slider(value: a.scale, min: .85, max: 1.3, onChanged: (v) => a.update(() => a.scale = v), onChangeEnd: (_) => a.savePrefs()),
+        ]),
+      ),
+    ]));
+  }
+}
+
+class PasswordPage extends StatefulWidget {
+  const PasswordPage({super.key});
+  @override
+  State<PasswordPage> createState() => _PasswordState();
+}
+
+class _PasswordState extends State<PasswordPage> {
+  final o = TextEditingController(), n = TextEditingController();
+  @override
+  Widget build(BuildContext c) {
+    final a = Scope.of(c);
+    return Frame('تغییر رمز عبور', child: ListView(padding: const EdgeInsets.all(16), children: [
+      Glass(
+        child: Column(children: [
+          TextField(controller: o, obscureText: true, decoration: const InputDecoration(labelText: 'رمز فعلی')),
+          const SizedBox(height: 12),
+          TextField(controller: n, obscureText: true, decoration: const InputDecoration(labelText: 'رمز جدید (حداقل ۶ کاراکتر)')),
+          const SizedBox(height: 16),
+          FilledButton(
+            onPressed: () {
+              final e = a.changePassword(o.text, n.text);
+              toast(c, e ?? 'رمز تغییر کرد.');
+              if (e == null) Navigator.pop(c);
+            },
+            child: const Text('ذخیره'),
+          ),
+        ]),
+      ),
+    ]));
+  }
+}
+
+String fmtLog(Map e) {
+  final d = DateTime.tryParse(e['t'] ?? '');
+  return d == null ? '' : '${jDate(d)}  ${fa(d.hour)}:${fa(d.minute).padLeft(2, '۰')}';
+}
+
+class MyLogPage extends StatelessWidget {
+  const MyLogPage({super.key});
+  @override
+  Widget build(BuildContext c) {
+    final a = Scope.of(c);
+    final mine = a.logs.cast<Map>().where((e) => e['who'] == a.name).toList();
+    return Frame('سوابق فعالیت من', child: ListView(padding: const EdgeInsets.all(16), children: [
+      if (mine.isEmpty) const EmptyBox('سابقه‌ای نیست.'),
+      for (final e in mine.take(100)) ListTile(dense: true, leading: const Icon(Icons.history, size: 18), title: Text('${e['w']}'), subtitle: Text(fmtLog(e))),
+    ]));
+  }
+}
