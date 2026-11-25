@@ -1,5 +1,4 @@
 import 'dart:math' as m;
-import 'dart:ui' as ui;
 import 'package:flutter_map/flutter_map.dart';
 import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
@@ -106,7 +105,7 @@ class IranPainter extends CustomPainter {
           colors: dark ? const [Color(0xFF050B1A), Color(0xFF0E1B3D)] : const [Color(0xFFD6E6FF), Colors.white],
         ).createShader(r),
     );
-    final path = ui.Path();
+    final path = Path();
     for (var i = 0; i < outline.length; i++) {
       final o = _p(outline[i][0], outline[i][1], s);
       i == 0 ? path.moveTo(o.dx, o.dy) : path.lineTo(o.dx, o.dy);
