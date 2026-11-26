@@ -6,6 +6,93 @@ import 'map.dart';
 import 'state.dart';
 import 'ui.dart';
 
+/// ===== خوشامدگویی و راهنمای تعاملی =====
+class Onboarding extends StatefulWidget {
+  const Onboarding({super.key});
+  @override
+  State<Onboarding> createState() => _OnboardingState();
+}
+
+class _OnboardingState extends State<Onboarding> {
+  final pc = PageController();
+  int i = 0;
+  static const pages = [
+    (Icons.bolt_rounded, 'انرژی کاشان', 'مصرف برق خود را ببینید، بسنجید و هوشمندانه مدیریت کنید.', kBlue),
+    (Icons.insights_rounded, 'تحلیل و هشدار', 'روند مصرف، مقایسه با دوره‌های قبل و یادآوری قبض در یک جا.', kYellow),
+    (Icons.map_rounded, 'نقشه و چالش‌ها', 'نقشه‌ی ایران در روز و شب و چالش‌های صرفه‌جویی برای شهر.', kRed),
+  ];
+
+  @override
+  Widget build(BuildContext c) {
+    final a = Scope.of(c);
+    return Bg(
+      child: Scaffold(
+        body: SafeArea(
+          child: Column(children: [
+            Align(
+              alignment: Alignment.centerLeft,
+              child: TextButton(onPressed: () => a.update(() { a.onboarded = true; a.savePrefs(); }), child: const Text('رد کردن')),
+            ),
+            Expanded(
+              child: PageView.builder(
+                controller: pc,
+                itemCount: pages.length,
+                onPageChanged: (v) => setState(() => i = v),
+                itemBuilder: (_, k) {
+                  final p = pages[k];
+                  return Padding(
+                    padding: const EdgeInsets.all(32),
+                    child: Column(mainAxisAlignment: MainAxisAlignment.center, children: [
+                      TweenAnimationBuilder<double>(
+                        key: ValueKey(k),
+                        tween: Tween(begin: .6, end: 1),
+                        duration: const Duration(milliseconds: 600),
+                        curve: Curves.elasticOut,
+                        builder: (_, s, __) => Transform.scale(
+                          scale: s,
+                          child: Container(
+                            width: 140,
+                            height: 140,
+                            decoration: BoxDecoration(color: p.$4.withOpacity(.15), shape: BoxShape.circle),
+                            child: Icon(p.$1, size: 72, color: p.$4),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+                      Text(p.$2, style: Theme.of(c).textTheme.headlineSmall?.copyWith(fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 12),
+                      Text(p.$3, textAlign: TextAlign.center, style: Theme.of(c).textTheme.bodyLarge),
+                    ]),
+                  );
+                },
+              ),
+            ),
+            Row(mainAxisAlignment: MainAxisAlignment.center, children: [
+              for (var k = 0; k < pages.length; k++)
+                AnimatedContainer(
+                  duration: const Duration(milliseconds: 300),
+                  margin: const EdgeInsets.all(4),
+                  width: k == i ? 24 : 8,
+                  height: 8,
+                  decoration: BoxDecoration(color: k == i ? kBlue : Colors.grey.withOpacity(.4), borderRadius: BorderRadius.circular(8)),
+                ),
+            ]),
+            Padding(
+              padding: const EdgeInsets.all(24),
+              child: FilledButton(
+                style: FilledButton.styleFrom(minimumSize: const Size.fromHeight(52), backgroundColor: kBlue),
+                onPressed: () => i == pages.length - 1
+                    ? a.update(() { a.onboarded = true; a.savePrefs(); })
+                    : pc.nextPage(duration: const Duration(milliseconds: 350), curve: Curves.easeOut),
+                child: Text(i == pages.length - 1 ? 'شروع کنید' : 'بعدی'),
+              ),
+            ),
+          ]),
+        ),
+      ),
+    );
+  }
+}
 /// ===== ورود، ثبت‌نام، مدیر =====
 class AuthPage extends StatefulWidget {
   const AuthPage({super.key});
@@ -122,7 +209,7 @@ class Shell extends StatelessWidget {
         ),
         bottomNavigationBar: NavigationBar(
           selectedIndex: a.tab,
-          onDestinationSelected: (i) => a.update(() => a.tab = i),
+          onDestinationSelected: (i) => a.update(() { a.tab = i; a.toolsTab = 0; }),
           destinations: const [
             NavigationDestination(icon: Icon(Icons.home_outlined), selectedIcon: Icon(Icons.home), label: 'خانه'),
             NavigationDestination(icon: Icon(Icons.bar_chart_outlined), selectedIcon: Icon(Icons.bar_chart), label: 'تحلیل'),
@@ -182,9 +269,9 @@ Future<void> addReadingDialog(BuildContext c) async {
           TextButton(onPressed: () => Navigator.pop(d), child: const Text('انصراف')),
           FilledButton(
             onPressed: () {
-              final v = double.tryParse(t.text.trim().replaceAll('٫', '.').replaceAll(',', '.'));
+              final v = parseNum(t.text);
               if (v == null || v < 0) return set(() => err = 'یک عدد معتبر وارد کنید.');
-              final list = [...a.readings.map((e) => Map<String, dynamic>.from(e)), {'d': date.toIso8601String(), 'v': v}]
+              final list = <Map<String, dynamic>>[...a.readings.map((e) => Map<String, dynamic>.from(e)), {'d': date.toIso8601String(), 'v': v}]
                 ..sort((x, y) => (x['d'] as String).compareTo(y['d'] as String));
               for (var i = 1; i < list.length; i++) {
                 if ((list[i]['v'] as num) < (list[i - 1]['v'] as num)) {
