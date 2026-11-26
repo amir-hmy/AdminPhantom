@@ -124,18 +124,15 @@ class Store {
     _key = enc.Key(Uint8List.fromList(base64.decode(k)));
   }
 
-  /// AES-256-GCM (رمزنگاری + تشخیص دستکاری). خواندن قالب قدیمی CBC هم پشتیبانی می‌شود.
   String _enc(String plain, enc.Key key) {
-    final iv = enc.IV(Uint8List.fromList(_rnd(12)));
-    final e = enc.Encrypter(enc.AES(key, mode: enc.AESMode.gcm));
+    final iv = enc.IV(Uint8List.fromList(_rnd(16)));
+    final e = enc.Encrypter(enc.AES(key, mode: enc.AESMode.cbc));
     return '${iv.base64}:${e.encrypt(plain, iv: iv).base64}';
   }
 
   String _dec(String s, enc.Key key) {
     final p = s.split(':');
-    final iv = enc.IV.fromBase64(p[0]);
-    final mode = iv.bytes.length == 12 ? enc.AESMode.gcm : enc.AESMode.cbc;
-    return enc.Encrypter(enc.AES(key, mode: mode)).decrypt64(p[1], iv: iv);
+    return enc.Encrypter(enc.AES(key, mode: enc.AESMode.cbc)).decrypt64(p[1], iv: enc.IV.fromBase64(p[0]));
   }
 
   Map<String, dynamic>? _try(String k) {
@@ -200,6 +197,33 @@ class Period {
 
 DateTime day(DateTime d) => DateTime(d.year, d.month, d.day);
 
+/// جمع/تفریق روز تقویمی بدون اثر تغییر ساعت تابستانی
+DateTime addDays(DateTime d, int n) => DateTime(d.year, d.month, d.day + n);
+
+/// تعداد روزهای تقویمی بین دو تاریخ
+int daysBetween(DateTime a, DateTime b) => DateTime.utc(b.year, b.month, b.day).difference(DateTime.utc(a.year, a.month, a.day)).inDays;
+
+/// تبدیل عدد فارسی/عربی و جداکننده‌ها به عدد؛ null اگر نامعتبر باشد
+double? parseNum(String s) {
+  const fa = '۰۱۲۳۴۵۶۷۸۹', ar = '٠١٢٣٤٥٦٧٨٩';
+  final b = StringBuffer();
+  for (final ch in s.trim().split('')) {
+    final i = fa.indexOf(ch), j = ar.indexOf(ch);
+    if (i >= 0) {
+      b.write(i);
+    } else if (j >= 0) {
+      b.write(j);
+    } else if (ch == '٫' || ch == ',') {
+      b.write('.');
+    } else if (ch == '٬' || ch == ' ') {
+      continue;
+    } else {
+      b.write(ch);
+    }
+  }
+  return double.tryParse(b.toString());
+}
+
 /// مصرف هر روز: اختلاف دو قرائت پیاپی به‌طور مساوی بین روزهای بازه پخش می‌شود.
 Map<DateTime, double> dailyUsage(List<dynamic> readings) {
   final r = [...readings]..sort((a, b) => (a['d'] as String).compareTo(b['d'] as String));
@@ -207,10 +231,10 @@ Map<DateTime, double> dailyUsage(List<dynamic> readings) {
   for (var i = 1; i < r.length; i++) {
     final d0 = day(DateTime.parse(r[i - 1]['d'])), d1 = day(DateTime.parse(r[i]['d']));
     final diff = (r[i]['v'] as num).toDouble() - (r[i - 1]['v'] as num).toDouble();
-    final n = d1.difference(d0).inDays;
+    final n = daysBetween(d0, d1);
     if (n <= 0 || diff < 0) continue;
     for (var k = 1; k <= n; k++) {
-      out[d0.add(Duration(days: k))] = diff / n;
+      out[addDays(d0, k)] = diff / n;
     }
   }
   return out;
@@ -223,9 +247,9 @@ Period periodOf(Map<DateTime, double> u, int mode) {
     // ۷ روز اخیر
     const wd = ['د', 'س', 'چ', 'پ', 'ج', 'ش', 'ی'];
     for (var i = 6; i >= 0; i--) {
-      final d = today.subtract(Duration(days: i));
+      final d = addDays(today, -i);
       labels.add(wd[d.weekday - 1]);
-      vals.add(u[d] ?? 0);
+      vals.add(u[d] ?? 0.0);
       has.add(u.containsKey(d));
     }
   } else if (mode == 1) {
@@ -233,7 +257,7 @@ Period periodOf(Map<DateTime, double> u, int mode) {
     for (var w = 7; w >= 0; w--) {
       var s = 0.0, h = false;
       for (var i = 0; i < 7; i++) {
-        final d = today.subtract(Duration(days: w * 7 + i));
+        final d = addDays(today, -(w * 7 + i));
         if (u.containsKey(d)) {
           s += u[d]!;
           h = true;
@@ -260,18 +284,18 @@ Period periodOf(Map<DateTime, double> u, int mode) {
     for (final e in u.entries) {
       final jj = toJalali(e.key);
       final k = jj[0] * 12 + (jj[1] - 1);
-      sums[k] = (sums[k] ?? 0) + e.value;
+      sums[k] = (sums[k] ?? 0.0) + e.value;
     }
     for (final k in keys) {
       labels.add(jMonths[k % 12].substring(0, min(3, jMonths[k % 12].length)));
-      vals.add(sums[k] ?? 0);
+      vals.add(sums[k] ?? 0.0);
       has.add(sums.containsKey(k));
     }
   } else {
     final sums = <int, double>{};
     for (final e in u.entries) {
       final y = toJalali(e.key)[0];
-      sums[y] = (sums[y] ?? 0) + e.value;
+      sums[y] = (sums[y] ?? 0.0) + e.value;
     }
     final ys = sums.keys.toList()..sort();
     for (final y in ys) {
@@ -298,12 +322,6 @@ class AppState extends ChangeNotifier {
     scale = p.getDouble('scale') ?? 1.0;
     onboarded = p.getBool('onboarded') ?? false;
     _t = Timer.periodic(const Duration(minutes: 1), (_) => notifyListeners());
-    // ورود کاربر با بستن برنامه نمی‌پرد (مدیر هرگز ذخیره نمی‌شود)
-    final ss = p.getString('session');
-    if (ss != null && users[ss] != null && users[ss]['disabled'] != true) {
-      name = ss;
-      signedIn = true;
-    }
   }
 
   String themePref = 'auto';
@@ -410,7 +428,6 @@ class AppState extends ChangeNotifier {
     name = u;
     signedIn = true;
     tab = 0;
-    store.sp.setString('session', u);
     log('ورود کاربر');
     persist();
     return null;
@@ -433,7 +450,6 @@ class AppState extends ChangeNotifier {
     name = u;
     signedIn = true;
     tab = 0;
-    store.sp.setString('session', u);
     log('ثبت‌نام کاربر جدید');
     persist();
     return null;
@@ -454,7 +470,6 @@ class AppState extends ChangeNotifier {
   String? adminLogin(String p) {
     final e = checkAdmin(p);
     if (e != null) return e;
-    store.sp.remove('session');
     isAdmin = true;
     name = 'مدیر';
     signedIn = true;
@@ -477,7 +492,6 @@ class AppState extends ChangeNotifier {
   }
 
   void logout() {
-    store.sp.remove('session');
     log('خروج');
     persist();
     update(() {
