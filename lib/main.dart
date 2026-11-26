@@ -3,7 +3,6 @@ import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'admin.dart';
 import 'screens.dart';
-import 'welcome.dart';
 import 'state.dart';
 
 Future<void> main() async {
@@ -25,22 +24,6 @@ class KashanEnergyApp extends StatefulWidget {
 }
 
 class _KashanEnergyAppState extends State<KashanEnergyApp> {
-  bool splash = true;
-  Timer? _st;
-  @override
-  void initState() {
-    super.initState();
-    _st = Timer(const Duration(milliseconds: 3200), () {
-      if (mounted) setState(() => splash = false);
-    });
-  }
-
-  @override
-  void dispose() {
-    _st?.cancel();
-    super.dispose();
-  }
-
   ThemeData _theme(Color seed, Brightness b) => ThemeData(
         useMaterial3: true,
         colorScheme: ColorScheme.fromSeed(seedColor: seed, brightness: b).copyWith(secondary: const Color(0xFFF5C84C), error: const Color(0xFFE5484D)),
@@ -64,7 +47,7 @@ class _KashanEnergyAppState extends State<KashanEnergyApp> {
             darkTheme: _theme(a.seed, Brightness.dark),
             themeMode: a.dark ? ThemeMode.dark : ThemeMode.light,
             builder: (ctx, child) => MediaQuery(data: MediaQuery.of(ctx).copyWith(textScaler: TextScaler.linear(a.scale)), child: child!),
-            home: splash ? WelcomeSplash(onDone: () => setState(() => splash = false)) : !a.onboarded ? const Onboarding() : !a.signedIn ? const AuthPage() : a.isAdmin ? const AdminShell() : const Shell(),
+            home: !a.onboarded ? const Onboarding() : !a.signedIn ? const AuthPage() : a.isAdmin ? const AdminShell() : const Shell(),
           );
         }),
       );
