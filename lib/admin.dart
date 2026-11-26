@@ -20,9 +20,9 @@ class AdminShell extends StatelessWidget {
     return Bg(
       child: Scaffold(
         appBar: AppBar(title: Text('مدیریت - ${titles[a.tab]}'), actions: [IconButton(icon: const Icon(Icons.logout), tooltip: 'خروج', onPressed: a.logout)]),
-        body: KeyedSubtree(key: ValueKey(a.tab), child: pages[a.tab.clamp(0, 3)]),
+        body: KeyedSubtree(key: ValueKey(a.tab), child: pages[a.tab.clamp(0, 3).toInt()]),
         bottomNavigationBar: NavigationBar(
-          selectedIndex: a.tab.clamp(0, 3),
+          selectedIndex: a.tab.clamp(0, 3).toInt(),
           onDestinationSelected: (i) => a.update(() => a.tab = i),
           destinations: const [
             NavigationDestination(icon: Icon(Icons.dashboard_outlined), selectedIcon: Icon(Icons.dashboard), label: 'نمای کلی'),
@@ -35,8 +35,6 @@ class AdminShell extends StatelessWidget {
     );
   }
 }
-
-Iterable<Map> _userData(AppState a) => a.users.values.map((u) => (u['data'] ?? {}) as Map);
 
 class AdminOverview extends StatefulWidget {
   const AdminOverview({super.key});
