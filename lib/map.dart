@@ -1,7 +1,4 @@
 import 'dart:math' as m;
-import 'dart:ui' as ui;
-import 'package:flutter_map/flutter_map.dart';
-import 'package:latlong2/latlong.dart';
 import 'package:flutter/material.dart';
 import 'state.dart';
 import 'ui.dart';
@@ -15,45 +12,21 @@ class MapPage extends StatefulWidget {
 
 class _MapState extends State<MapPage> with SingleTickerProviderStateMixin {
   late final ac = AnimationController(vsync: this, duration: const Duration(seconds: 4))..repeat();
-  int mode = 0; // 0 نقشه‌ی واقعی کاشان، 1 نقشه‌ی شماتیک ایران
-  static const kashan = LatLng(33.9850, 51.4100);
   @override
   void dispose() {
     ac.dispose();
     super.dispose();
   }
 
-  Widget real(bool d) {
-    final map = FlutterMap(
-      options: const MapOptions(initialCenter: kashan, initialZoom: 12.5, minZoom: 4, maxZoom: 18),
-      children: [
-        TileLayer(urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png', userAgentPackageName: 'ir.kashan.kashan_energy'),
-        const MarkerLayer(markers: [Marker(point: kashan, width: 90, height: 60, child: Column(children: [Icon(Icons.location_on, color: kRed, size: 34), Text('کاشان', style: TextStyle(fontWeight: FontWeight.bold, fontSize: 12, color: Colors.black87, backgroundColor: Colors.white70))]))]),
-        const SimpleAttributionWidget(source: Text('© OpenStreetMap')),
-      ],
-    );
-    // حالت شب: تیره‌کردن کاشی‌های نقشه
-    return d
-        ? ColorFiltered(colorFilter: const ColorFilter.matrix([-.8, 0, 0, 0, 255, 0, -.8, 0, 0, 255, 0, 0, -.8, 0, 255, 0, 0, 0, 1, 0]), child: map)
-        : map;
-  }
-
   @override
   Widget build(BuildContext c) {
     final d = isDark(c);
     return ListView(padding: const EdgeInsets.fromLTRB(16, 4, 16, 24), children: [
-      SegmentedButton<int>(
-        showSelectedIcon: false,
-        segments: const [ButtonSegment(value: 0, label: Text('نقشه‌ی کاشان')), ButtonSegment(value: 1, label: Text('ایران (شماتیک)'))],
-        selected: {mode},
-        onSelectionChanged: (s) => setState(() => mode = s.first),
-      ),
-      const SizedBox(height: 12),
       ClipRRect(
         borderRadius: BorderRadius.circular(24),
         child: AspectRatio(
-          aspectRatio: mode == 0 ? 1 : 1.32,
-          child: mode == 0 ? real(d) : AnimatedBuilder(animation: ac, builder: (_, __) => CustomPaint(painter: IranPainter(d, ac.value))),
+          aspectRatio: 1.32,
+          child: AnimatedBuilder(animation: ac, builder: (_, __) => CustomPaint(painter: IranPainter(d, ac.value))),
         ),
       ),
       const SizedBox(height: 12),
@@ -64,11 +37,12 @@ class _MapState extends State<MapPage> with SingleTickerProviderStateMixin {
           Expanded(
             child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
               const Text('کاشان', style: TextStyle(fontWeight: FontWeight.bold)),
-              Text(mode == 0 ? 'نقشه‌ی واقعی از OpenStreetMap؛ برای نمایش به اینترنت نیاز دارد. با دو انگشت بزرگ‌نمایی کنید.' : 'نقشه‌ی شماتیک و ساده‌شده است و داده‌ی مصرف شهرها را نشان نمی‌دهد.', style: Theme.of(c).textTheme.bodySmall),
+              Text(d ? 'حالت شب: شهرها مانند چراغ‌های روشن دیده می‌شوند.' : 'حالت روز: نمایش با نور طبیعی.', style: Theme.of(c).textTheme.bodySmall),
             ]),
           ),
         ]),
       ),
+      Text('نقشه‌ی شماتیک و ساده‌شده است و داده‌ی مصرف واقعی شهرها را نشان نمی‌دهد.', style: Theme.of(c).textTheme.bodySmall),
     ]);
   }
 }
@@ -106,7 +80,7 @@ class IranPainter extends CustomPainter {
           colors: dark ? const [Color(0xFF050B1A), Color(0xFF0E1B3D)] : const [Color(0xFFD6E6FF), Colors.white],
         ).createShader(r),
     );
-    final path = ui.Path();
+    final path = Path();
     for (var i = 0; i < outline.length; i++) {
       final o = _p(outline[i][0], outline[i][1], s);
       i == 0 ? path.moveTo(o.dx, o.dy) : path.lineTo(o.dx, o.dy);
