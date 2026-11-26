@@ -52,7 +52,7 @@ class _CalcState extends State<CalcTab> {
           ),
           const SizedBox(height: 12),
           Text('توان: ${fa(w)} وات (مقدار تقریبی؛ از برچسب دستگاه بخوانید)'),
-          Slider(value: w.clamp(5, 3000), min: 5, max: 3000, onChanged: (v) => setState(() => w = v.roundToDouble())),
+          Slider(value: w.clamp(5.0, 3000.0).toDouble(), min: 5, max: 3000, onChanged: (v) => setState(() => w = v.roundToDouble())),
           Text('مدت استفاده: ${fa(h, d: 1)} ساعت در روز'),
           Slider(value: h, min: 0, max: 24, divisions: 48, onChanged: (v) => setState(() => h = v)),
           Row(children: [
@@ -115,7 +115,7 @@ class _BillsState extends State<BillsTab> {
           TextButton(onPressed: () => Navigator.pop(d), child: const Text('انصراف')),
           FilledButton(
             onPressed: () {
-              final amt = int.tryParse(m.text.trim());
+              final amt = parseNum(m.text)?.round();
               if (t.text.trim().isEmpty || amt == null || amt <= 0) return toast(d, 'عنوان و مبلغ معتبر وارد کنید.');
               a.bills.add({'title': t.text.trim(), 'amount': amt, 'status': 'پرداخت‌نشده', 'receipt': null});
               a.log('افزودن قبض «${t.text.trim()}»');
@@ -187,7 +187,7 @@ class ChallengesTab extends StatelessWidget {
               Text(challenges[i].$1, style: const TextStyle(fontWeight: FontWeight.bold)),
               Text(challenges[i].$2, style: Theme.of(c).textTheme.bodySmall),
               const SizedBox(height: 10),
-              LinearProgressIndicator(value: on ? (done / challenges[i].$3).clamp(0, 1).toDouble() : 0, minHeight: 8, borderRadius: BorderRadius.circular(8), color: kYellow, backgroundColor: kYellow.withOpacity(.2)),
+              LinearProgressIndicator(value: on ? (done / challenges[i].$3).clamp(0.0, 1.0).toDouble() : 0.0, minHeight: 8, borderRadius: BorderRadius.circular(8), color: kYellow, backgroundColor: kYellow.withOpacity(.2)),
               if (on) Padding(padding: const EdgeInsets.only(top: 4), child: Text('${fa(done)} از ${fa(challenges[i].$3)} روز', style: Theme.of(c).textTheme.bodySmall)),
               const SizedBox(height: 8),
               Wrap(spacing: 8, children: [
@@ -250,7 +250,7 @@ class MorePage extends StatelessWidget {
                   TextButton(onPressed: () => Navigator.pop(d), child: const Text('انصراف')),
                   FilledButton(
                     onPressed: () {
-                      final v = double.tryParse(t.text.trim());
+                      final v = parseNum(t.text);
                       if (v == null || v <= 0) return toast(d, 'یک عدد معتبر وارد کنید.');
                       a.ud['tariff'] = v;
                       a.log('تغییر نرخ');
